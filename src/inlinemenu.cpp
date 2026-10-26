@@ -25,6 +25,20 @@ InlineMenu::InlineMenu(QWidget *parent) : QWidget(parent)
 }
 
 void InlineMenu::setRoot(InlineMenu *root) { m_root = root; }
+void InlineMenu::setTargetOpacity(qreal opacity)
+{
+    m_targetOpacity = qBound<qreal>(0.2, opacity, 1.0);
+    if (m_opacityEffect && !isVisible())
+        m_opacityEffect->setOpacity(m_targetOpacity);
+}
+void InlineMenu::setThemeColors(const QColor &background, const QColor &text,
+                                const QColor &accent, const QColor &border,
+                                const QColor &separator)
+{
+    m_background = background; m_text = text; m_accent = accent;
+    m_border = border; m_separator = separator; update();
+}
+
 void InlineMenu::clear() { m_items.clear(); m_hover = -1; m_activeSubmenu = nullptr; }
 
 void InlineMenu::addAction(const QString &text, std::function<void()> fn) {
@@ -204,7 +218,7 @@ void InlineMenu::startFadeIn() {
 
     anim->setDuration(kFadeMs);
     anim->setStartValue(m_opacityEffect->opacity());
-    anim->setEndValue(1.0);
+    anim->setEndValue(m_targetOpacity);
     anim->setEasingCurve(QEasingCurve::OutCubic);
 
     QObject::connect(anim, &QPropertyAnimation::finished, this, [this, anim]() {
@@ -274,21 +288,22 @@ void InlineMenu::paintEvent(QPaintEvent *) {
     // Soft outer shadow. It is drawn inside the widget so it does not require
     // another graphics effect and remains compatible with the fade animation.
     p.setPen(Qt::NoPen);
-    p.setBrush(QColor(0x02, 0x0A, 0x10, 0xA0));
+    p.setBrush(QColor(0, 0, 0, 160));
     p.drawRoundedRect(r.adjusted(1, 2, 1, 1), 8, 8);
 
     // Main translucent glass background.
     QLinearGradient bgGradient(r.topLeft(), r.bottomLeft());
-    bgGradient.setColorAt(0.0, QColor(0x0D, 0x32, 0x40, 0xE8));
-    bgGradient.setColorAt(0.5, QColor(0x0A, 0x26, 0x32, 0xE2));
-    bgGradient.setColorAt(1.0, QColor(0x05, 0x17, 0x21, 0xF0));
+    QColor top = m_background.lighter(112); top.setAlpha(238);
+    QColor bottom = m_background; bottom.setAlpha(245);
+    bgGradient.setColorAt(0.0, top);
+    bgGradient.setColorAt(1.0, bottom);
 
     p.setBrush(bgGradient);
     p.drawRoundedRect(r, 8, 8);
 
     // Thin outer cyan-teal edge.
     p.setBrush(Qt::NoBrush);
-    p.setPen(QPen(QColor(0x3B, 0x8A, 0x9B, 0xD0), 1));
+    p.setPen(QPen(m_border, 1));
     p.drawRoundedRect(r, 8, 8);
 
     // Very subtle inner highlight, giving the panel a glass edge.
@@ -306,7 +321,7 @@ void InlineMenu::paintEvent(QPaintEvent *) {
         if (it.isSep) {
             const int mid = y + kSepH / 2;
 
-            p.setPen(QColor(0x43, 0x78, 0x86, 0x85));
+            p.setPen(m_separator);
             p.drawLine(kPadL - 2, mid, r.right() - 3, mid);
 
             // Small highlight directly under the separator.
@@ -324,22 +339,21 @@ void InlineMenu::paintEvent(QPaintEvent *) {
         // -------------------------------------------------------------------
         if (i == m_hover) {
             QLinearGradient hoverGradient(ir.topLeft(), ir.bottomLeft());
-            hoverGradient.setColorAt(0.0, QColor(0x1D, 0x67, 0x80, 0xD8));
-            hoverGradient.setColorAt(0.5, QColor(0x14, 0x4E, 0x68, 0xE5));
-            hoverGradient.setColorAt(1.0, QColor(0x0B, 0x35, 0x4A, 0xE8));
+            hoverGradient.setColorAt(0.0, m_accent.lighter(112));
+            hoverGradient.setColorAt(1.0, m_accent.darker(110));
 
             p.setPen(Qt::NoPen);
             p.setBrush(hoverGradient);
             p.drawRoundedRect(ir, 5, 5);
 
             // Subtle cyan outline around the hovered item.
-            p.setPen(QPen(QColor(0x48, 0xA9, 0xBF, 0xB0), 1));
+            p.setPen(QPen(m_accent, 1));
             p.setBrush(Qt::NoBrush);
             p.drawRoundedRect(ir.adjusted(0, 0, -1, -1), 5, 5);
 
-            p.setPen(QColor(0xF2, 0xFB, 0xFF));
+            p.setPen(m_text.lighter(115));
         } else {
-            p.setPen(QColor(0xD4, 0xEC, 0xF2));
+            p.setPen(m_text);
         }
 
         // Checkmark column
@@ -382,6 +396,8 @@ void InlineMenu::mouseMoveEvent(QMouseEvent *ev) {
     InlineMenu *root = m_root ? m_root : this;
 
     if (idx >= 0 && m_items[idx].isSub && m_items[idx].submenu) {
+        if (root->m_activeSubmenu && root->m_activeSubmenu != m_items[idx].submenu)
+            root->m_activeSubmenu->_closeTree();
         QRect r = itemRect(idx);
         m_items[idx].submenu->popup(
             mapToParent(QPoint(width() - 2, r.top())),

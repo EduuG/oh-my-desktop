@@ -1,6 +1,6 @@
-# HyprSillyDesktopIcons
+# SakuraDesktopIcons
 
-> A modified and updated fork of [Oh My Desktop](https://github.com/EduuG/oh-my-desktop), renamed and adapted as [**HyprSillyDesktopIcons**](https://github.com/cherryCTL/HyprSillyDesktopIcons).
+> A modified and updated fork of [Oh My Desktop](https://github.com/EduuG/oh-my-desktop), renamed and adapted as [**SakuraDesktopIcons**](https://github.com/cherryCTL/SakuraDesktopIcons).
 
 > This version was updated for my personal Hyprland setup, mainly to fix compatibility issues with newer Hyprland versions and update parts of the original project that no longer worked correctly.
 >
@@ -19,11 +19,11 @@ Desktop icons manager for Hyprland. Hyprland has no built-in desktop icon suppor
 Built with C++17 and Qt6 + LayerShellQt, it provides a proper desktop with drag-and-drop, keyboard navigation, multi-monitor support, and file watching.
 
 <p>
-<a href="https://github.com/cherryCTL/HyprSillyDesktopIcons"><img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white" alt="C++17"></a>
-<a href="https://github.com/cherryCTL/HyprSillyDesktopIcons"><img src="https://img.shields.io/badge/Qt-6-41CD52?logo=qt&logoColor=white" alt="Qt6"></a>
-<a href="https://github.com/cherryCTL/HyprSillyDesktopIcons"><img src="https://img.shields.io/badge/Wayland-LayerShell-8054B8?logo=linux&logoColor=white" alt="Wayland LayerShell"></a>
-<a href="https://github.com/cherryCTL/HyprSillyDesktopIcons"><img src="https://img.shields.io/badge/CMake-3.20+-064F8C?logo=cmake&logoColor=white" alt="CMake"></a>
-<a href="https://github.com/cherryCTL/HyprSillyDesktopIcons"><img src="https://img.shields.io/badge/Linux-x86__64-E95420?logo=linux&logoColor=white" alt="Linux"></a>
+<a href="https://github.com/cherryCTL/SakuraDesktopIcons"><img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white" alt="C++17"></a>
+<a href="https://github.com/cherryCTL/SakuraDesktopIcons"><img src="https://img.shields.io/badge/Qt-6-41CD52?logo=qt&logoColor=white" alt="Qt6"></a>
+<a href="https://github.com/cherryCTL/SakuraDesktopIcons"><img src="https://img.shields.io/badge/Wayland-LayerShell-8054B8?logo=linux&logoColor=white" alt="Wayland LayerShell"></a>
+<a href="https://github.com/cherryCTL/SakuraDesktopIcons"><img src="https://img.shields.io/badge/CMake-3.20+-064F8C?logo=cmake&logoColor=white" alt="CMake"></a>
+<a href="https://github.com/cherryCTL/SakuraDesktopIcons"><img src="https://img.shields.io/badge/Linux-x86__64-E95420?logo=linux&logoColor=white" alt="Linux"></a>
 </p>
 
 ## Tech Stack
@@ -37,7 +37,7 @@ Built with C++17 and Qt6 + LayerShellQt, it provides a proper desktop with drag-
 ## Build
 
 ```bash
-cd HyprSillyDesktopIcons
+cd SakuraDesktopIcons
 rm -rf build
 mkdir build
 cd build
@@ -48,6 +48,29 @@ cmake --build . -j$(nproc)
 
 Requires Qt6 and LayerShellQt development packages.
 
+The included `install.sh` uses these verified package names for the supported
+distributions:
+
+* EndeavourOS/Arch: `base-devel cmake git pkgconf qt6-base qt6-wayland
+  layer-shell-qt`
+* Fedora: `gcc-c++ cmake git pkgconf-pkg-config qt6-qtbase-devel
+  qt6-qtwayland-devel wayland-devel layer-shell-qt-devel`
+* Debian/Ubuntu: `build-essential cmake git pkg-config extra-cmake-modules
+  qt6-base-dev qt6-wayland-dev qt6-declarative-dev libwayland-dev
+  libxkbcommon-dev wayland-protocols`, plus the LayerShellQt development
+  package exposed by the distribution repositories.
+
+The installer can build and install the application interactively:
+
+```bash
+./install.sh
+```
+
+Choose the build/install action from its menu. It installs the executable to
+`~/.local/bin/SakuraDesktopIcons`. Run `./install.sh` again and choose the
+uninstall action to remove that executable; user configuration is intentionally
+left in place.
+
 ## Runtime Dependencies
 
 * `hyprctl`
@@ -55,6 +78,12 @@ Requires Qt6 and LayerShellQt development packages.
 * `xdg-mime`
 * `xdg-open`
 * A system terminal
+
+Sound playback is optional. The application uses `canberra-gtk-play` for
+system sound-theme events when available. Explicit custom files can use
+PipeWire `pw-play` or PulseAudio `paplay`. If none is installed, sound events
+are skipped and the rest of the application continues normally. Preview
+failures should be diagnosed by running the selected backend manually.
 
 ## Run
 
@@ -64,7 +93,7 @@ For Hyprland configurations using `hyprland.lua`:
 
 ```lua
 hl.on("hyprland.start", function()
-    hl.exec_cmd("/full/path/to/HyprSillyDesktopIcons/build/HyprSillyDesktopIcons")
+    hl.exec_cmd("/full/path/to/SakuraDesktopIcons/build/SakuraDesktopIcons")
 end)
 ```
 
@@ -72,7 +101,7 @@ Or, if the binary is available in your `PATH`:
 
 ```lua
 hl.on("hyprland.start", function()
-    hl.exec_cmd("HyprSillyDesktopIcons")
+    hl.exec_cmd("SakuraDesktopIcons")
 end)
 ```
 
@@ -80,12 +109,12 @@ end)
 
 ### Lua Startup
 
-For unknown reasons, `HyprSillyDesktopIcons` did not start correctly from Lua's startup event on my system when using the normal command. I was able to fix it by adding a 2-second delay. I suspect the startup order after Noctalia's shell may be causing this issue.
+For unknown reasons, `SakuraDesktopIcons` did not start correctly from Lua's startup event on my system when using the normal command. I was able to fix it by adding a 2-second delay. I suspect the startup order after Noctalia's shell may be causing this issue.
 
 If you experience the same problem, use this command in your Lua startup:
 
 ```lua
-hl.exec_cmd("sleep 2 && HyprSillyDesktopIcons")
+hl.exec_cmd("sleep 2 && SakuraDesktopIcons")
 ```
 
 
@@ -99,8 +128,41 @@ hl.exec_cmd("sleep 2 && HyprSillyDesktopIcons")
 * Ctrl+scroll to resize icons (24–96px range)
 * Image previews for common formats
 * `.desktop` files use `Name=` and `Icon=` from the entry
-* Pin applications to the desktop via the Properties dialog
-* Positions and settings saved to `~/.config/HyprSillyDesktopIcons/icon-positions.ini`
+* Create executable `.desktop` launchers from New → Desktop Entry
+* Desktop Entry creation supports Application, Link, and Directory types,
+  working directory, categories, destination, filename, and overwrite checks
+* Installed entries can be edited from Settings → Desktop Entry
+* Configure the application through the Settings dialog
+* Optional System Tray with About, Settings, and Restart actions
+
+### Themes and Appearance
+
+* Built-in selectable themes: Sakura, Noctalia, Normal Dark, Joyfull Sea, and Emerald Green.
+* The optional custom theme is selected from Settings → Appearance with
+  “Choose Custom Theme File...” and “Use custom theme instead”. Its JSON path
+  and enabled state are persisted independently of the selected built-in theme.
+* Noctalia colors are read safely from the generated `noctlia.lua` format.
+* Custom theme files use hexadecimal JSON colors; see `custom-theme-doc.txt`
+  and `examples/custom-theme.json`.
+* Settings-window dimensions, icon appearance, and animation preferences are persisted.
+
+Qt and LayerShellQt do not provide a portable Wayland backdrop-blur API for
+these ordinary application surfaces. The Emerald Green theme uses layered
+opaque surfaces as a reliable fallback and does not require expensive blur.
+
+### Sounds
+
+The Sounds settings use the Linux desktop sound-theme mechanism through
+`canberra-gtk-play` when it is available. PipeWire `pw-play` and PulseAudio
+`paplay` are used for explicitly supplied custom files by the sound module.
+Missing audio backends or unavailable event sounds are ignored without
+preventing the desktop from starting.
+The Sounds tab also supports per-event custom files, preview, and restoring
+the system sound-theme default.
+* Positions and settings saved to `~/.config/SakuraDesktopIcons/icon-positions.ini`
+* Existing settings are copied automatically from
+  `~/.config/HyprSillyDesktopIcons/icon-positions.ini` on first launch after
+  upgrading; the legacy file is retained as a rollback backup.
 
 ### File Management
 
@@ -108,6 +170,8 @@ hl.exec_cmd("sleep 2 && HyprSillyDesktopIcons")
 * Smart text file opening
 * File watcher automatically refreshes when the Desktop folder changes
 * Recycle Bin accepts file drops and has an "Empty Recycle Bin" action
+* Monitor-specific icon layouts with legacy shared-position fallback
+* Panel reservations are refreshed from Hyprland while running
 
 ### Keyboard
 
@@ -117,15 +181,26 @@ hl.exec_cmd("sleep 2 && HyprSillyDesktopIcons")
 * Type-to-select files by name
 * Full keyboard navigation without a mouse
 
+### Animations
+
+New, pasted, and externally dropped icons fade in and briefly bounce with a
+short stagger. Right-clicking scales an icon briefly, dragging produces a
+subtle wobble, and deletion confirmation produces a short shake before any
+file operation occurs. Selected icons receive an attention pulse. These visual
+effects are painted without changing widget geometry or saved positions. The
+master, individual effect, speed, and intensity controls are in Appearance →
+Animations. `GTK_ENABLE_ANIMATIONS=0` or `SAKURA_REDUCED_MOTION=1` disables
+animations by default when no explicit saved preference exists.
+
 ### Context Menus
 
 * Right-click the desktop for:
 
-  * New Folder / Document
+  * New Folder / Document / Desktop Entry
   * Open in Terminal
   * Arrange
   * System actions
-  * Properties
+  * Settings
 * Right-click icons for:
 
   * Open
@@ -156,7 +231,7 @@ When a new monitor is connected, a new desktop window is created automatically.
 
 Standard `QMenu` popups can be unreliable when used from Wayland layer-shell surfaces.
 
-HyprSillyDesktopIcons uses custom inline menus instead. These are regular child widgets positioned around the cursor, avoiding the popup grab issues that can occur with native menus on Wayland.
+SakuraDesktopIcons uses custom inline menus instead. These are regular child widgets positioned around the cursor, avoiding the popup grab issues that can occur with native menus on Wayland.
 
 ### Hyprland IPC
 
@@ -220,3 +295,12 @@ The following improvements are planned for the next release:
 * **Fix file manager window handling:** Ensure that opening files and directories while a file manager is already running respects the configured floating or tiling behavior.
 * **Fix virtual icon launch settings:** Make the Trash, Root, and Home icons consistently respect the configured window behavior and floating dimensions.
 * **Add a top screen boundary for desktop icons:** Prevent icons from being dragged underneath panels positioned at the top of the screen, similar to the existing handling of reserved screen areas.
+
+
+## Custom themes
+
+Select **Custom** in Settings → Appearance and choose a JSON file. The example is `examples/custom-theme.json`. Required field: `name`. Optional fields are `windowBackground`, `windowText`, `accent`, `highlight`, `highlightedText`, `menuBackground`, `menuText`, and `border`; omitted or invalid colors use safe fallbacks. The selected path is persisted and reread whenever the theme is applied.
+
+## Noctalia colors
+
+The Noctalia theme reads the generated Lua declarations from `/home/cherry/.config/hypr/noctlia.lua` (and compatible user-home fallbacks). It safely parses only `localName = "rgb(hexvalue)"` declarations and never executes Lua.

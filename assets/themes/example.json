@@ -1,0 +1,13 @@
+{
+  "name": "Example Custom",
+  "windowBackground": "#fff7fb",
+  "windowText": "#2a1c24",
+  "accent": "#c34d83",
+  "highlight": "#f0a6c5",
+  "highlightedText": "#ffffff",
+  "labelText": "#ffffff",
+  "labelOutline": "#24131d",
+  "menuBackground": "#fff7fb",
+  "menuText": "#2a1c24",
+  "menuOpacity": 94
+}

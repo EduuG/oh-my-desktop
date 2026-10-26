@@ -4,6 +4,8 @@
 #include <QFileInfo>
 
 class QLineEdit;
+class QComboBox;
+class QCheckBox;
 
 class FilePropertiesDialog : public QDialog
 {
@@ -20,4 +22,9 @@ private:
     QLineEdit *m_nameEdit = nullptr;
     QLineEdit *m_execEdit = nullptr;
     QLineEdit *m_iconEdit = nullptr;
+    QLineEdit *m_commentEdit = nullptr;
+    QLineEdit *m_pathEdit = nullptr;
+    QLineEdit *m_categoriesEdit = nullptr;
+    QComboBox *m_typeCombo = nullptr;
+    QCheckBox *m_terminalCheck = nullptr;
 };

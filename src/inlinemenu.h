@@ -7,6 +7,7 @@
 #include <functional>
 #include <QPointer>
 #include <QGraphicsEffect>
+#include <QColor>
 
 class QPropertyAnimation;
 
@@ -34,6 +35,10 @@ public:
     explicit InlineMenu(QWidget *parent);
 
     void setRoot(InlineMenu *root);
+    void setTargetOpacity(qreal opacity);
+    void setThemeColors(const QColor &background, const QColor &text,
+                       const QColor &accent, const QColor &border,
+                       const QColor &separator);
 
     void clear();
     void addAction(const QString &text, std::function<void()> fn);
@@ -76,6 +81,12 @@ private:
     QPointer<QPropertyAnimation> m_opacityAnim;
     int m_fadeSeq = 0;
     bool m_closing = false;
+    qreal m_targetOpacity = 1.0;
+    QColor m_background = QColor("#211921");
+    QColor m_text = QColor("#F7EAF2");
+    QColor m_accent = QColor("#F2A2CD");
+    QColor m_border = QColor("#B96F9D");
+    QColor m_separator = QColor("#493343");
 
     QPointer<QGraphicsOpacityEffect> m_opacityEffect;
 };

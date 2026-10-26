@@ -13,6 +13,8 @@ public:
     ~DesktopWindow() override = default;
 
     void setKeyboardInteractive(bool on);
+    void showSettings();
+    DesktopScene *scene() const { return m_scene; }
 
 protected:
     void resizeEvent(QResizeEvent *event) override;

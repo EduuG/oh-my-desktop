@@ -1,4 +1,4 @@
-/* HyprSillyDesktopIcons - only desktop-specific overrides.
+/* SakuraDesktopIcons - only desktop-specific overrides.
    Everything else follows the current Qt system style and palette. */
 
 QWidget#DesktopWindow {

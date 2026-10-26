@@ -1,0 +1,49 @@
+SakuraDesktopIcons Custom Themes
+================================
+
+Format
+------
+A custom theme is a UTF-8 JSON object. The required field is "name". All
+color fields are optional and use hexadecimal RGB values with a leading #,
+for example "#202124". Invalid or missing optional fields use safe defaults;
+an invalid JSON file or a file without a name is rejected without replacing
+the active theme.
+
+Complete example
+----------------
+See examples/custom-theme.json. It contains:
+{
+  "name": "My Custom Theme",
+  "windowBackground": "#202124",
+  "windowText": "#f1f3f4",
+  "accent": "#8ab4f8",
+  "highlight": "#3c4043",
+  "highlightedText": "#ffffff",
+  "menuBackground": "#292a2d",
+  "menuText": "#f1f3f4",
+  "border": "#5f6368"
+}
+
+Supported fields
+----------------
+name: Required display name for the file.
+windowBackground: Dialog and main application background.
+windowText: Primary text color.
+accent: Buttons, checked indicators, focus and active selections.
+highlight: Selected/hover surface color.
+highlightedText: Text drawn on highlighted surfaces.
+menuBackground: Context and popup menu background.
+menuText: Context and popup menu text.
+border: Borders, separators and control outlines.
+
+Use in the application
+----------------------
+Open Settings -> Appearance. The built-in selector remains independent.
+Press "Choose Custom Theme File..." and select a JSON file. The path is saved, then enable
+"Use custom theme instead". This leaves the selected built-in theme intact.
+Uncheck it to return to that built-in theme. Press the existing Refresh action
+to reread the selected file after editing it; recompilation is not required.
+
+If the file is missing, malformed, or has invalid required data, the
+application shows an error when selecting/enabling it and keeps the last
+valid active palette. The original file is never modified.

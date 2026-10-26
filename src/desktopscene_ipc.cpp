@@ -140,7 +140,7 @@ void DesktopScene::setupHyprlandIPC()
             } else if (line.startsWith("openwindow>>")) {
                 // openwindow>>windowaddress,workspacename,class,title
                 //
-                // Only redirect focus if HyprSillyDesktopIcons currently has
+                // Only redirect focus if SakuraDesktopIcons currently has
                 // focus (QGuiApplication::focusWindow is our
                 // DesktopWindow or one of its children).  This
                 // prevents us from hijacking focus while the user
