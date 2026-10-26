@@ -1,17 +1,5 @@
-/* Oh My Desktop - only desktop-specific overrides; everything else uses the system theme */
-
-* {
-    font-family: "MS Sans Serif", "Tahoma", sans-serif;
-    font-size: 8pt;
-}
-
-QToolTip {
-    background-color: #ffffe1;
-    color: #000000;
-    border: 1px solid #808080;
-    padding: 2px;
-    font-size: 8pt;
-}
+/* SakuraDesktopIcons - only desktop-specific overrides.
+   Everything else follows the current Qt system style and palette. */
 
 QWidget#DesktopWindow {
     background: transparent;
@@ -21,16 +9,27 @@ QWidget#DesktopScene {
     background: transparent;
 }
 
-/* ── Properties Dialog banner (keep the gradient) ───────────────── */
+/* Tooltips follow the current Qt palette */
+
+QToolTip {
+    background-color: palette(tooltip-base);
+    color: palette(tooltip-text);
+    border: 1px solid palette(mid);
+    padding: 2px;
+}
+
+/* Properties Dialog banner */
 
 #PropBanner {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                                stop:0 #000080, stop:1 #1084d0);
+    background: qlineargradient(
+        x1: 0, y1: 0,
+        x2: 1, y2: 0,
+        stop: 0 palette(highlight),
+        stop: 1 palette(accent)
+    );
 }
 
 #PropBannerText {
-    color: #ffffff;
-    font-size: 10pt;
+    color: palette(highlighted-text);
     font-weight: bold;
 }
-

@@ -16,6 +16,10 @@ struct DesktopEntryData {
 #include <QPixmap>
 #include <QIcon>
 #include <QWheelEvent>
+#include <QPointer>
+#include <QColor>
+#include <QGraphicsOpacityEffect>
+#include <QPropertyAnimation>
 #include "desktopconstants.h"
 
 class DesktopIcon : public QWidget
@@ -24,6 +28,8 @@ class DesktopIcon : public QWidget
         bool m_isDesktopFile = false;
         DesktopEntryData m_desktopEntry;
     Q_OBJECT
+    Q_PROPERTY(qreal visualScale READ visualScale WRITE setVisualScale)
+    Q_PROPERTY(qreal visualAngle READ visualAngle WRITE setVisualAngle)
 public:
     enum class VirtualType { None, Trash, Computer, Home };
 
@@ -42,9 +48,21 @@ public:
     void updateSettings(int iconSize, bool showPreview);
     void updateSize(int iconSize);
     void setLabelFont(const QString &family, int pointSize);
+    void setLabelAppearance(const QColor &textColor, const QColor &outlineColor, int outlineWidth);
     void setGhost(bool ghost);
     void setDropTarget(bool on);
     void setCutState(bool cut);
+    void playAppearAnimation(int delayMs = 0);
+    void playAttentionAnimation();
+    void setAnimationPreferences(bool enabled, bool appearanceEnabled,
+                                  bool selectionEnabled, int speedPercent,
+                                  int intensityPercent = 100);
+    qreal visualScale() const { return m_visualScale; }
+    void setVisualScale(qreal value);
+    qreal visualAngle() const { return m_visualAngle; }
+    void setVisualAngle(qreal value);
+    void playDragWobble();
+    void playDeleteShake();
     bool isCut() const { return m_cut; }
 
 signals:
@@ -54,6 +72,8 @@ signals:
     void dragging(DesktopIcon *icon, QPoint scenePos);
     void moved(DesktopIcon *icon, QPoint scenePos);
     void openRequested(const QFileInfo &fileInfo);
+    void openCommandRequested(const QString &command);
+    void activationSucceeded();
     void renameRequested(DesktopIcon *icon);
     void deleteRequested(DesktopIcon *icon);
     void iconContextMenuRequested(DesktopIcon *icon, QPoint scenePos);
@@ -95,6 +115,14 @@ private:
     int     m_iconDisplaySize = 40;
     QString m_fontFamily      = "MS Sans Serif";
     int     m_fontSize        = 8;
+    QColor  m_labelTextColor = Qt::white;
+    QColor  m_labelOutlineColor = QColor(0, 0, 0, 160);
+    int     m_labelOutlineWidth = 1;
+    bool    m_animationsEnabled = true;
+    bool    m_appearanceAnimationEnabled = true;
+    bool    m_selectionAnimationEnabled = true;
+    int     m_animationSpeed = 100;
+    int     m_animationIntensity = 100;
     QPoint  m_dragStartPos;      // global cursor pos at press
     QPoint  m_dragStartIconPos;  // icon pos() at press
     QPoint  m_dragOffset;
@@ -107,6 +135,11 @@ private:
     QString m_labelElidedSelected;   // cached 4-line elided (selected)
     QString m_tipText;               // full filename for in-scene tooltip
     QFont   m_cachedLabelFont;       // font used to build the cache
+    QPointer<QGraphicsOpacityEffect> m_animationEffect;
+    QPointer<QPropertyAnimation> m_animation;
+    QPointer<QPropertyAnimation> m_visualAnimation;
+    qreal   m_visualScale = 1.0;
+    qreal   m_visualAngle = 0.0;
 
     int iconW() const { return m_iconDisplaySize + kIconExtraWidth; }
     int iconH() const { return m_iconDisplaySize + kIconExtraHeight; }

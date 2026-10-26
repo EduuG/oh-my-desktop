@@ -1,0 +1,11 @@
+{
+  "name": "My Custom Theme",
+  "windowBackground": "#202124",
+  "windowText": "#f1f3f4",
+  "accent": "#8ab4f8",
+  "highlight": "#3c4043",
+  "highlightedText": "#ffffff",
+  "menuBackground": "#292a2d",
+  "menuText": "#f1f3f4",
+  "border": "#5f6368"
+}

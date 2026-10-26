@@ -3,11 +3,14 @@
 #include "exeiconutil.h"
 
 #include <QDialogButtonBox>
+#include <QCheckBox>
+#include <QComboBox>
 #include <QFile>
 #include <QFileIconProvider>
 #include <QFormLayout>
 #include <QFrame>
 #include <QGridLayout>
+#include <QHash>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QIcon>
@@ -18,6 +21,8 @@
 #include <QMimeDatabase>
 #include <QPushButton>
 #include <QTextStream>
+#include <QSaveFile>
+#include <QSet>
 #include <QVBoxLayout>
 
 static QString humanSize(qint64 bytes)
@@ -127,10 +132,21 @@ FilePropertiesDialog::FilePropertiesDialog(const QFileInfo &info, QWidget *paren
         m_nameEdit = new QLineEdit(launcherGroup);
         m_execEdit = new QLineEdit(launcherGroup);
         m_iconEdit = new QLineEdit(launcherGroup);
+        m_commentEdit = new QLineEdit(launcherGroup);
+        m_pathEdit = new QLineEdit(launcherGroup);
+        m_categoriesEdit = new QLineEdit(launcherGroup);
+        m_typeCombo = new QComboBox(launcherGroup);
+        m_typeCombo->addItems({"Application", "Link", "Directory"});
+        m_terminalCheck = new QCheckBox("Run in terminal", launcherGroup);
 
+        launcherForm->addRow("Type:", m_typeCombo);
         launcherForm->addRow("Name:", m_nameEdit);
         launcherForm->addRow("Exec:", m_execEdit);
         launcherForm->addRow("Icon:", m_iconEdit);
+        launcherForm->addRow("Comment:", m_commentEdit);
+        launcherForm->addRow("Path:", m_pathEdit);
+        launcherForm->addRow("Categories:", m_categoriesEdit);
+        launcherForm->addRow(QString(), m_terminalCheck);
         contentLayout->addWidget(launcherGroup);
 
         loadDesktopEntryFields();
@@ -220,9 +236,14 @@ void FilePropertiesDialog::loadDesktopEntryFields()
         const QString key = line.left(split).trimmed();
         const QString value = line.mid(split + 1).trimmed();
 
-        if (key == "Name") m_nameEdit->setText(value);
-        else if (key == "Exec") m_execEdit->setText(value);
+        if (key == "Type") m_typeCombo->setCurrentText(value);
+        else if (key == "Name") m_nameEdit->setText(value);
+        else if (key == "Exec" || key == "URL") m_execEdit->setText(value);
         else if (key == "Icon") m_iconEdit->setText(value);
+        else if (key == "Comment") m_commentEdit->setText(value);
+        else if (key == "Path") m_pathEdit->setText(value);
+        else if (key == "Categories") m_categoriesEdit->setText(value);
+        else if (key == "Terminal") m_terminalCheck->setChecked(value.compare("true", Qt::CaseInsensitive) == 0);
     }
 }
 
@@ -247,70 +268,107 @@ bool FilePropertiesDialog::saveDesktopEntryFields()
         lines << in.readLine();
     file.close();
 
-    bool inDesktopEntry = false;
-    bool foundName = false;
-    bool foundExec = false;
-    bool foundIcon = false;
+    auto escapeValue = [](QString value) {
+        value.replace('\\', "\\\\");
+        value.replace('\n', "\\n");
+        value.replace('\r', "\\r");
+        value.replace('\t', "\\t");
+        return value;
+    };
+    const QString type = m_typeCombo->currentText();
+    const QString name = escapeValue(m_nameEdit->text().trimmed());
+    const QString exec = m_execEdit->text().trimmed();
+    if (type == "Application" && exec.isEmpty()) {
+        QMessageBox::warning(this, "Desktop Entry", "Exec cannot be empty for an application.");
+        return false;
+    }
+    QString categories = m_categoriesEdit->text().trimmed();
+    if (!categories.isEmpty()) {
+        categories = categories.split(';', Qt::SkipEmptyParts).join(';');
+        if (!categories.endsWith(';')) categories += ';';
+    }
 
-    for (int i = 0; i < lines.size(); ++i) {
-        const QString trimmed = lines[i].trimmed();
+    const QHash<QString, QString> values = {
+        {"Type", type}, {"Name", name}, {"Exec", exec},
+        {"URL", exec}, {"Icon", escapeValue(m_iconEdit->text().trimmed())},
+        {"Comment", escapeValue(m_commentEdit->text().trimmed())},
+        {"Path", escapeValue(m_pathEdit->text().trimmed())},
+        {"Categories", categories},
+        {"Terminal", m_terminalCheck->isChecked() ? "true" : "false"}
+    };
+    const QSet<QString> managed = {"Type", "Name", "Exec", "URL", "Icon",
+                                   "Comment", "Path", "Categories", "Terminal"};
+    QSet<QString> found;
+    QList<QString> updated;
+    bool inDesktopEntry = false;
+    for (const QString &line : lines) {
+        const QString trimmed = line.trimmed();
         if (trimmed.startsWith('[')) {
             if (inDesktopEntry)
-                break;
-            inDesktopEntry = (trimmed == "[Desktop Entry]");
+                inDesktopEntry = false;
+            if (trimmed == "[Desktop Entry]")
+                inDesktopEntry = true;
+            updated << line;
             continue;
         }
-        if (!inDesktopEntry || trimmed.startsWith('#') || !trimmed.contains('='))
+        if (!inDesktopEntry || trimmed.startsWith('#') || !trimmed.contains('=')) {
+            updated << line;
             continue;
-
+        }
         const int split = trimmed.indexOf('=');
         const QString key = trimmed.left(split).trimmed();
-        if (key == "Name") {
-            lines[i] = "Name=" + m_nameEdit->text().trimmed();
-            foundName = true;
-        } else if (key == "Exec") {
-            lines[i] = "Exec=" + m_execEdit->text().trimmed();
-            foundExec = true;
-        } else if (key == "Icon") {
-            lines[i] = "Icon=" + m_iconEdit->text().trimmed();
-            foundIcon = true;
-        }
-    }
-
-    int desktopEntryEnd = -1;
-    inDesktopEntry = false;
-    for (int i = 0; i < lines.size(); ++i) {
-        const QString trimmed = lines[i].trimmed();
-        if (trimmed == "[Desktop Entry]") {
-            inDesktopEntry = true;
-            desktopEntryEnd = i + 1;
+        if (!managed.contains(key)) {
+            updated << line;
             continue;
         }
-        if (inDesktopEntry && trimmed.startsWith('[')) {
-            desktopEntryEnd = i;
+        found.insert(key);
+        const bool applicable = key == "Type" || key == "Name"
+            || key == "Icon" || key == "Comment" || key == "Path"
+            || (type == "Application" && (key == "Exec" || key == "Terminal" || key == "Categories"))
+            || (type == "Link" && key == "URL");
+        if (applicable && (!values.value(key).isEmpty() || key == "Type" || key == "Name" || key == "Terminal"))
+            updated << key + "=" + values.value(key);
+    }
+    if (updated.isEmpty() || updated.first().trimmed() != "[Desktop Entry]")
+        updated.prepend("[Desktop Entry]");
+    int insertAt = updated.size();
+    for (int i = 0; i < updated.size(); ++i) {
+        if (i > 0 && updated[i].trimmed().startsWith('[')) {
+            insertAt = i;
             break;
         }
-        if (inDesktopEntry)
-            desktopEntryEnd = i + 1;
     }
-
-    if (desktopEntryEnd < 0) {
-        lines.prepend("[Desktop Entry]");
-        desktopEntryEnd = 1;
+    QStringList required;
+    for (const QString &key : {QString("Type"), QString("Name"), QString("Exec"), QString("URL"),
+                               QString("Icon"), QString("Comment"), QString("Path"),
+                               QString("Categories"), QString("Terminal")}) {
+        const bool applicable = key == "Type" || key == "Name"
+            || key == "Icon" || key == "Comment" || key == "Path"
+            || (type == "Application" && (key == "Exec" || key == "Terminal" || key == "Categories"))
+            || (type == "Link" && key == "URL");
+        if (applicable && !found.contains(key)
+            && (!values.value(key).isEmpty() || key == "Type" || key == "Name" || key == "Terminal"))
+            required << key + "=" + values.value(key);
     }
-    if (!foundName) lines.insert(desktopEntryEnd++, "Name=" + m_nameEdit->text().trimmed());
-    if (!foundExec) lines.insert(desktopEntryEnd++, "Exec=" + m_execEdit->text().trimmed());
-    if (!foundIcon) lines.insert(desktopEntryEnd++, "Icon=" + m_iconEdit->text().trimmed());
+    for (int i = required.size() - 1; i >= 0; --i)
+        updated.insert(insertAt, required[i]);
+    lines = updated;
 
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+    const QFile::Permissions originalPermissions = QFile::permissions(m_info.absoluteFilePath());
+    QSaveFile saveFile(m_info.absoluteFilePath());
+    if (!saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::warning(this, "Desktop Entry", "Could not save the launcher changes.");
         return false;
     }
 
-    QTextStream out(&file);
+    QTextStream out(&saveFile);
     for (const QString &line : lines)
         out << line << '\n';
-    file.close();
+    if (!saveFile.commit()) {
+        QMessageBox::warning(this, "Desktop Entry", "Could not commit the launcher changes.");
+        return false;
+    }
+    QFile::setPermissions(m_info.absoluteFilePath(), originalPermissions);
 
     return true;
 }

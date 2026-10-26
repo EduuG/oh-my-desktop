@@ -22,6 +22,7 @@
 #include "desktopconstants.h"
 
 class DesktopIcon;
+class InlineMenu;
 
 class DesktopScene : public QWidget
 {
@@ -31,6 +32,11 @@ public:
 
     explicit DesktopScene(QScreen *screen, QWidget *parent = nullptr);
     ~DesktopScene() override;
+
+    void showSettings(bool openDesktopEntryTab = false);
+
+signals:
+    void trayEnabledChanged(bool enabled);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -61,13 +67,14 @@ private slots:
     void onFileDroppedOnTrash(const QString &filePath);
     void onNewFolder();
     void onNewDocument();
+    void onNewDesktopEntry();
     void onExtractArchive(const QFileInfo &fileInfo);
     void onExtractFinished(int exitCode, QProcess::ExitStatus exitStatus);
     void onOpenInTerminal();
     void onArrangeBy(SortOrder order);
     void onAutoArrangeToggled();
     void onShowHiddenToggled();
-    void onShowProperties();
+    void onShowProperties(bool openDesktopEntryTab = false);
     void onIconContextMenuRequested(DesktopIcon *icon, QPoint scenePos);
     void closeAllMenus();
 
@@ -93,11 +100,16 @@ private:
     QString configPath() const;
     void arrangeAll();
     void applyIconSize(int newSize); // resize + remap positions to new grid
-    void applyFont(const QString &family, int size); // update font on all icons
+    void applyFont(const QString &family, int size); // update label font on all icons
+    void applyLabelAppearance();
+    QString activeThemeName() const;
     void setupHyprlandIPC(); // socket2 connection + event parsing (extracted to desktopscene_ipc.cpp)
+    void updateReservedAreas();
+    void handleScreenGeometryChanged();
     QRect workArea() const;    // screen work area in scene-local coordinates
     QRect menuBoundary() const; // popup boundary respecting panel reserved areas
     void showDesktopContextMenuAt(const QPoint &scenePos);
+    bool addCustomActions(InlineMenu *menu, bool separator = true);
 
     // Grid helpers
     QPoint cellToPos(int col, int row) const;
@@ -138,27 +150,64 @@ private:
     QStringList                     m_clipboardPaths;   // absolute paths from last copy/cut
     QFileSystemWatcher *m_watcher;
     QScreen            *m_screen    = nullptr;
+    QString             m_monitorKey;
     QWidget            *m_dragOverlay = nullptr; // ghost overlay raised above icons
     QString             m_desktopPath;
     SortOrder           m_sortOrder   = SortOrder::ByName;
     QPoint              m_lastContextMenuPos;
     QTimer             *m_refreshTimer = nullptr;
     QTimer             *m_saveTimer = nullptr;
+    QTimer             *m_panelRefreshTimer = nullptr;
     bool                m_autoArrange = false;
     bool                m_showHidden  = false;
     bool                m_showTrash   = true;
     bool                m_showComputer = false;
     bool                m_showHome    = false;
+    bool                m_trayEnabled = true;
     int                 m_iconSize    = 40;
     bool                m_showPreview = true;
     QString             m_fontFamily  = "MS Sans Serif";
     int                 m_fontSize    = 8;
+    QString             m_themeName = "Sakura";
+    int                 m_settingsWidth = 1280;
+    int                 m_settingsHeight = 720;
+    int                 m_contextMenuOpacity = 94;
+    int                 m_settingsOpacity = 94;
+    QString             m_labelTextColor;
+    QString             m_labelOutlineColor;
+    int                 m_labelOutlineWidth = 1;
+    bool                m_animationsEnabled = true;
+    bool                m_animateAppearance = true;
+    bool                m_animateSelection = true;
+    int                 m_animationSpeed = 100;
+    int                 m_animationIntensity = 100;
+    bool                m_soundsEnabled = true;
+    bool                m_soundCreateEnabled = true;
+    bool                m_soundOpenEnabled = true;
+    bool                m_soundRestartEnabled = true;
+    bool                m_soundQuitEnabled = true;
+    bool                m_soundDeleteEnabled = true;
+    bool                m_soundSettingsEnabled = true;
+    QString             m_soundCreateFile;
+    QString             m_customThemePath;
+    bool                m_useCustomTheme = false;
+    QStringList         m_customActionNames;
+    QStringList         m_customActionCommands;
+    bool                m_customActionSubmenus[4] = {false, false, false, false};
+    QStringList         m_customSubmenuNames[4];
+    QStringList         m_customSubmenuCommands[4];
+    QString             m_soundOpenFile;
+    QString             m_soundRestartFile;
+    QString             m_soundQuitFile;
+    QString             m_soundDeleteFile;
+    QString             m_soundSettingsFile;
 
     QWidget            *m_ctxMenu        = nullptr;
     QWidget            *m_ctxArrangeMenu = nullptr;
     QWidget            *m_iconCtxMenu    = nullptr;
     QWidget            *m_newMenu        = nullptr;
     QWidget            *m_systemMenu     = nullptr;
+    QWidget            *m_customSubMenus[4] = {nullptr, nullptr, nullptr, nullptr};
 
     // Hyprland IPC listener
     QSocketNotifier    *m_hypNotifier  = nullptr;

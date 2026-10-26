@@ -23,6 +23,9 @@
 #include <QPixmap>
 #include <QFile>
 #include <QTextStream>
+#include <QGraphicsOpacityEffect>
+#include <QPropertyAnimation>
+#include <QTimer>
 
 // ── Elided-label helpers ────────────────────────────────────────────────────
 // Generates candidate strings for elision, ordered from longest to shortest.
@@ -162,9 +165,9 @@ DesktopIcon::DesktopIcon(VirtualType type, int iconSize, QWidget *parent)
 QString DesktopIcon::virtualLabel() const
 {
     switch (m_virtualType) {
-        case VirtualType::Trash:    return "Recycle Bin";
-        case VirtualType::Computer: return "My Computer";
-        case VirtualType::Home:     return "My Documents";
+        case VirtualType::Trash:    return "Trash";
+        case VirtualType::Computer: return "Root";
+        case VirtualType::Home:     return "Home";
         default:                    return {};
     }
 }
@@ -354,7 +357,177 @@ void DesktopIcon::setSelected(bool selected)
 {
     if (m_selected == selected) return;
     m_selected = selected;
+    if (selected)
+        playAttentionAnimation();
     update();
+}
+
+void DesktopIcon::setLabelAppearance(const QColor &textColor, const QColor &outlineColor,
+                                     int outlineWidth)
+{
+    if (textColor.isValid())
+        m_labelTextColor = textColor;
+    if (outlineColor.isValid())
+        m_labelOutlineColor = outlineColor;
+    m_labelOutlineWidth = qBound(0, outlineWidth, 6);
+    update();
+}
+
+void DesktopIcon::setAnimationPreferences(bool enabled, bool appearanceEnabled,
+                                           bool selectionEnabled, int speedPercent,
+                                           int intensityPercent)
+{
+    m_animationsEnabled = enabled;
+    m_appearanceAnimationEnabled = appearanceEnabled;
+    m_selectionAnimationEnabled = selectionEnabled;
+    m_animationSpeed = qBound(25, speedPercent, 300);
+    m_animationIntensity = qBound(25, intensityPercent, 200);
+}
+
+void DesktopIcon::setVisualScale(qreal value)
+{
+    m_visualScale = qBound<qreal>(0.65, value, 1.25);
+    update();
+}
+
+void DesktopIcon::setVisualAngle(qreal value)
+{
+    m_visualAngle = qBound<qreal>(-12.0, value, 12.0);
+    update();
+}
+
+void DesktopIcon::playDragWobble()
+{
+    if (!m_animationsEnabled)
+        return;
+    if (m_visualAnimation)
+        m_visualAnimation->stop();
+    auto *animation = new QPropertyAnimation(this, "visualAngle", this);
+    m_visualAnimation = animation;
+    const qreal amplitude = 2.0 * m_animationIntensity / 100.0;
+    animation->setDuration(qMax(80, 22000 / m_animationSpeed));
+    animation->setStartValue(-amplitude);
+    animation->setKeyValueAt(0.25, amplitude);
+    animation->setKeyValueAt(0.50, -amplitude);
+    animation->setKeyValueAt(0.75, amplitude);
+    animation->setEndValue(-amplitude);
+    animation->setLoopCount(-1);
+    animation->start(QPropertyAnimation::DeleteWhenStopped);
+}
+
+void DesktopIcon::playDeleteShake()
+{
+    if (!m_animationsEnabled)
+        return;
+    if (m_visualAnimation)
+        m_visualAnimation->stop();
+    auto *animation = new QPropertyAnimation(this, "visualAngle", this);
+    m_visualAnimation = animation;
+    const qreal amplitude = 5.0 * m_animationIntensity / 100.0;
+    animation->setDuration(qMax(100, 26000 / m_animationSpeed));
+    animation->setStartValue(0.0);
+    animation->setKeyValueAt(0.16, -amplitude);
+    animation->setKeyValueAt(0.32, amplitude);
+    animation->setKeyValueAt(0.48, -amplitude);
+    animation->setKeyValueAt(0.64, amplitude);
+    animation->setKeyValueAt(0.80, -amplitude / 2.0);
+    animation->setEndValue(0.0);
+    connect(animation, &QPropertyAnimation::finished, this, [this, animation] {
+        if (m_visualAnimation == animation)
+            m_visualAnimation = nullptr;
+        setVisualAngle(0.0);
+    });
+    animation->start(QPropertyAnimation::DeleteWhenStopped);
+}
+
+void DesktopIcon::playAppearAnimation(int delayMs)
+{
+    if (!m_animationsEnabled || !m_appearanceAnimationEnabled)
+        return;
+    if (!m_animationEffect) {
+        auto *effect = new QGraphicsOpacityEffect(this);
+        effect->setOpacity(1.0);
+        setGraphicsEffect(effect);
+        m_animationEffect = effect;
+    }
+
+    QTimer::singleShot(qMax(0, delayMs), this, [this] {
+        if (!m_animationEffect)
+            return;
+        if (m_animation)
+            m_animation->stop();
+        m_animationEffect->setOpacity(0.0);
+        auto *animation = new QPropertyAnimation(m_animationEffect, "opacity", this);
+        m_animation = animation;
+        animation->setDuration(qMax(40, 22000 / m_animationSpeed));
+        animation->setStartValue(0.0);
+        animation->setEndValue(1.0);
+        animation->setEasingCurve(QEasingCurve::OutCubic);
+        connect(animation, &QPropertyAnimation::finished, this, [this, animation] {
+            if (m_animation == animation)
+                m_animation = nullptr;
+        });
+        animation->start(QPropertyAnimation::DeleteWhenStopped);
+
+        if (m_visualAnimation)
+            m_visualAnimation->stop();
+        auto *bounce = new QPropertyAnimation(this, "visualScale", this);
+        m_visualAnimation = bounce;
+        const qreal amplitude = 0.12 * m_animationIntensity / 100.0;
+        bounce->setDuration(qMax(80, 26000 / m_animationSpeed));
+        bounce->setStartValue(0.82);
+        bounce->setKeyValueAt(0.48, 1.0 + amplitude);
+        bounce->setKeyValueAt(0.72, 1.0 - amplitude / 2.0);
+        bounce->setEndValue(1.0);
+        connect(bounce, &QPropertyAnimation::finished, this, [this, bounce] {
+            if (m_visualAnimation == bounce)
+                m_visualAnimation = nullptr;
+            setVisualScale(1.0);
+        });
+        bounce->start(QPropertyAnimation::DeleteWhenStopped);
+    });
+}
+
+void DesktopIcon::playAttentionAnimation()
+{
+    if (!m_animationsEnabled || !m_selectionAnimationEnabled)
+        return;
+    if (!m_animationEffect) {
+        auto *effect = new QGraphicsOpacityEffect(this);
+        effect->setOpacity(1.0);
+        setGraphicsEffect(effect);
+        m_animationEffect = effect;
+    }
+    if (m_animation)
+        m_animation->stop();
+    auto *animation = new QPropertyAnimation(m_animationEffect, "opacity", this);
+    m_animation = animation;
+    animation->setDuration(qMax(30, 14000 / m_animationSpeed));
+    animation->setStartValue(0.72);
+    animation->setKeyValueAt(0.5, 1.0);
+    animation->setEndValue(1.0);
+    animation->setEasingCurve(QEasingCurve::InOutSine);
+    connect(animation, &QPropertyAnimation::finished, this, [this, animation] {
+        if (m_animation == animation)
+            m_animation = nullptr;
+    });
+    animation->start(QPropertyAnimation::DeleteWhenStopped);
+
+    if (m_visualAnimation)
+        m_visualAnimation->stop();
+    auto *scale = new QPropertyAnimation(this, "visualScale", this);
+    m_visualAnimation = scale;
+    const qreal amplitude = 0.08 * m_animationIntensity / 100.0;
+    scale->setDuration(qMax(50, 14000 / m_animationSpeed));
+    scale->setStartValue(1.0);
+    scale->setKeyValueAt(0.5, 1.0 + amplitude);
+    scale->setEndValue(1.0);
+    connect(scale, &QPropertyAnimation::finished, this, [this, scale] {
+        if (m_visualAnimation == scale)
+            m_visualAnimation = nullptr;
+        setVisualScale(1.0);
+    });
+    scale->start(QPropertyAnimation::DeleteWhenStopped);
 }
 
 void DesktopIcon::paintEvent(QPaintEvent *)
@@ -362,6 +535,10 @@ void DesktopIcon::paintEvent(QPaintEvent *)
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, false);
     if (m_ghost) p.setOpacity(0.4);
+    p.translate(width() / 2.0, height() / 2.0);
+    p.rotate(m_visualAngle);
+    p.scale(m_visualScale, m_visualScale);
+    p.translate(-width() / 2.0, -height() / 2.0);
 
     const QRect iconRect((iconW() - m_iconDisplaySize) / 2, kIconLabelMarginTop, m_iconDisplaySize, m_iconDisplaySize);
 
@@ -453,10 +630,19 @@ void DesktopIcon::paintEvent(QPaintEvent *)
         p.fillRect(highlightRect, QColor(0, 0, 128, 80));
     }
 
-    // Shadow + label
-    p.setPen(QColor(0, 0, 0, 160));
-    p.drawText(textRect.translated(1, 1), Qt::AlignTop | Qt::AlignHCenter | Qt::TextWrapAnywhere, label);
-    p.setPen(Qt::white);
+    // Theme/user-configurable outline + label. Multiple small offset draws are
+    // inexpensive for icon labels and preserve wrapped-text alignment.
+    p.setPen(m_labelOutlineColor);
+    const int outline = m_labelOutlineWidth;
+    for (int y = -outline; y <= outline; ++y) {
+        for (int x = -outline; x <= outline; ++x) {
+            if (x == 0 && y == 0)
+                continue;
+            if (x * x + y * y <= outline * outline + 1)
+                p.drawText(textRect.translated(x, y), Qt::AlignTop | Qt::AlignHCenter | Qt::TextWrapAnywhere, label);
+        }
+    }
+    p.setPen(m_labelTextColor);
     p.drawText(textRect, Qt::AlignTop | Qt::AlignHCenter | Qt::TextWrapAnywhere, label);
 }
 
@@ -485,6 +671,7 @@ void DesktopIcon::mouseMoveEvent(QMouseEvent *event)
         const QPoint delta = event->globalPosition().toPoint() - m_dragStartPos;
         if (!m_dragging && delta.manhattanLength() > QApplication::startDragDistance()) {
             m_dragging = true;
+            playDragWobble();
             emit dragStarted(this, m_dragOffset);
         }
         if (m_dragging) {
@@ -510,11 +697,16 @@ void DesktopIcon::mouseReleaseEvent(QMouseEvent *event)
         if (m_dragging)
             emit moved(this, m_lastDragPos); // virtual position, not actual widget pos
         emit released(this, m_dragging, m_ctrlAtPress);
+        if (m_visualAnimation)
+            m_visualAnimation->stop();
+        setVisualAngle(0.0);
+        setVisualScale(1.0);
         m_dragging = false;
         event->accept();
     } else if (event->button() == Qt::RightButton) {
         if (m_rightPressed) {
             setSelected(true);
+            playAttentionAnimation();
             emit iconContextMenuRequested(this, mapToParent(event->position().toPoint()));
         }
         m_rightPressed = false;
@@ -535,8 +727,8 @@ void DesktopIcon::mouseDoubleClickEvent(QMouseEvent *event)
                 case VirtualType::Home:     uri = QDir::homePath(); break;
                 default: break;
             }
-            if (!uri.isEmpty())
-                LauncherUtil::startDetachedWindowedProgram("gio", {"open", uri});
+            if (!uri.isEmpty() && LauncherUtil::startDetachedWindowedProgram("gio", {"open", uri}))
+                emit activationSucceeded();
         } else if (m_isDesktopFile && !m_desktopEntry.exec.isEmpty()) {
             // Run .desktop command via shell for maximum compatibility
             QString exec = m_desktopEntry.exec;
@@ -544,7 +736,7 @@ void DesktopIcon::mouseDoubleClickEvent(QMouseEvent *event)
             exec.replace(QRegularExpression("%[fFuUdDnNickvm]"), "");
             exec = exec.trimmed();
             if (!exec.isEmpty()) {
-                LauncherUtil::startDetachedWindowedCommand(exec);
+                emit openCommandRequested(exec);
             }
         } else {
             emit openRequested(m_fileInfo);
@@ -564,6 +756,7 @@ void DesktopIcon::contextMenuEvent(QContextMenuEvent *event)
         return;
     }
     setSelected(true);
+    playAttentionAnimation();
     emit iconContextMenuRequested(this, mapToParent(rect().center()));
     event->accept();
 }

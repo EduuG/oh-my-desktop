@@ -304,9 +304,10 @@ void DesktopScene::pasteFromClipboard()
 
             auto *icon = new DesktopIcon(destInfo, m_iconSize, m_showPreview, this);
             icon->move(snapped);
-            icon->show();
             connectIconSignals(icon, false);
             m_icons.append(icon);
+            icon->show();
+            icon->playAppearAnimation();
         }
 
         // Clear clipboard after paste so Paste menu item disappears
@@ -352,9 +353,10 @@ void DesktopScene::pasteFromClipboard()
 
         auto *icon = new DesktopIcon(destInfo, m_iconSize, m_showPreview, this);
         icon->move(snapped);
-        icon->show();
         connectIconSignals(icon, false);
         m_icons.append(icon);
+        icon->show();
+        icon->playAppearAnimation();
 
         if (++startCell.second >= maxRows()) { startCell.second = 0; ++startCell.first; }
     }

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(OhMyDesktop VERSION 1.0 LANGUAGES CXX)
+project(SakuraDesktopIcons VERSION 1.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,6 +23,9 @@ set(SOURCES
     src/launcherutil.cpp
     src/propertiesdialog.cpp
     src/filepropertiesdialog.cpp
+    src/desktopentrydialog.cpp
+    src/thememanager.cpp
+    src/soundmanager.cpp
     src/inlinemenu.cpp
 )
 
@@ -34,6 +37,9 @@ set(HEADERS
     src/launcherutil.h
     src/propertiesdialog.h
     src/filepropertiesdialog.h
+    src/desktopentrydialog.h
+    src/thememanager.h
+    src/soundmanager.h
     src/inlinemenu.h
 )
 
@@ -41,15 +47,17 @@ set(RESOURCES
     assets/resources.qrc
 )
 
-add_executable(oh-my-desktop ${SOURCES} ${HEADERS} ${RESOURCES})
+add_executable(SakuraDesktopIcons ${SOURCES} ${HEADERS} ${RESOURCES})
 
-target_include_directories(oh-my-desktop PRIVATE src)
+target_include_directories(SakuraDesktopIcons PRIVATE src)
 
-target_link_libraries(oh-my-desktop PRIVATE
+target_link_libraries(SakuraDesktopIcons PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
     LayerShellQt::Interface
 )
 
-install(TARGETS oh-my-desktop)
+install(TARGETS SakuraDesktopIcons)
+install(FILES assets/themes/example.json examples/custom-theme.json
+        DESTINATION share/SakuraDesktopIcons/examples)

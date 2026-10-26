@@ -35,14 +35,34 @@ bool canUseHyprlandFloatDispatch()
     return hasHyprctl;
 }
 
-bool startWithHyprlandFloatRule(const QString &command)
+QString luaStringLiteral(const QString &value)
 {
-    const QString rules = QString("[float; size %1 %1; center 1] ")
-                              .arg(kWindowedLaunchSize);
-    bool ok = QProcess::startDetached("hyprctl",
-                                   {"dispatch", "exec", rules + command});
+    QString escaped = value;
+    escaped.replace('\\', "\\\\");
+    escaped.replace('\'', "\\'");
+    escaped.replace('\n', "\\n");
+    escaped.replace('\r', "\\r");
+    escaped.replace('\t', "\\t");
+    return '\'' + escaped + '\'';
+}
+
+bool startWithHyprlandFloatRule(const QString &command, int width, int height)
+{
+    const QString lua = QStringLiteral(
+        "hl.dsp.exec_cmd(%1, { float = true, size = { %2, %3 }, center = true })")
+        .arg(luaStringLiteral(command))
+        .arg(width)
+        .arg(height);
+
+    const bool ok = QProcess::startDetached(
+        "hyprctl",
+        {"dispatch", lua}
+    );
+
     if (!ok)
-        qWarning() << "[IPC] hyprctl dispatch exec failed for:" << command.left(80);
+        qWarning() << "[IPC] hyprctl dispatch hl.dsp.exec_cmd failed for:"
+                   << command.left(80);
+
     return ok;
 }
 
@@ -54,20 +74,25 @@ bool startDetachedWindowedCommand(const QString &command)
     if (trimmed.isEmpty())
         return false;
 
-    if (canUseHyprlandFloatDispatch() && startWithHyprlandFloatRule(trimmed))
+    if (canUseHyprlandFloatDispatch() &&
+    startWithHyprlandFloatRule(trimmed, kWindowedLaunchSize, kWindowedLaunchSize))
         return true;
 
     return QProcess::startDetached("sh", {"-lc", trimmed});
 }
 
-bool startDetachedWindowedProgram(const QString &program, const QStringList &arguments)
+bool startDetachedWindowedProgram(const QString &program,
+                                  const QStringList &arguments,
+                                  bool floating,
+                                  int width,
+                                  int height)
 {
     if (program.trimmed().isEmpty())
         return false;
 
-    if (canUseHyprlandFloatDispatch()) {
+    if (floating && canUseHyprlandFloatDispatch()) {
         const QString command = joinCommand(program, arguments);
-        if (startWithHyprlandFloatRule(command))
+        if (startWithHyprlandFloatRule(command, width, height))
             return true;
     }
 

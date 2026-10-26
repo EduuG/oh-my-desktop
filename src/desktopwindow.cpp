@@ -6,6 +6,7 @@
 #include <QVBoxLayout>
 #include <QWindow>
 #include <QResizeEvent>
+#include <QGuiApplication>
 
 DesktopWindow::DesktopWindow(QScreen *screen, QWidget *parent)
     : QWidget(parent)
@@ -18,6 +19,9 @@ DesktopWindow::DesktopWindow(QScreen *screen, QWidget *parent)
 
     // Fill the screen geometry
     setGeometry(screen->geometry());
+    connect(screen, &QScreen::geometryChanged, this, [this](const QRect &geometry) {
+        setGeometry(geometry);
+    });
 
     m_scene = new DesktopScene(screen, this);
 
@@ -36,6 +40,10 @@ DesktopWindow::DesktopWindow(QScreen *screen, QWidget *parent)
 
 void DesktopWindow::setupLayerShell()
 {
+    // LayerShellQt::Window::get() is only safe when a Wayland platform is active.
+    // Guard this for offscreen/X11 sessions and headless smoke tests.
+    if (!QGuiApplication::platformName().startsWith("wayland", Qt::CaseInsensitive))
+        return;
     auto *lsWindow = LayerShellQt::Window::get(windowHandle());
     if (!lsWindow) return;
 
@@ -45,18 +53,24 @@ void DesktopWindow::setupLayerShell()
                          LSWindow::AnchorLeft | LSWindow::AnchorRight));
     lsWindow->setExclusiveZone(-1);
     lsWindow->setKeyboardInteractivity(LSWindow::KeyboardInteractivityOnDemand);
-    lsWindow->setActivateOnShow(false);
-    lsWindow->setScope("oh-my-desktop-desktop");
-    lsWindow->setScreen(m_screen);
+    lsWindow->setScope("hyprsillydesktopicons-desktop");
 }
 
 void DesktopWindow::setKeyboardInteractive(bool on)
 {
+    if (!QGuiApplication::platformName().startsWith("wayland", Qt::CaseInsensitive))
+        return;
     auto *lsWindow = LayerShellQt::Window::get(windowHandle());
     if (!lsWindow) return;
     using LSWindow = LayerShellQt::Window;
     lsWindow->setKeyboardInteractivity(on ? LSWindow::KeyboardInteractivityOnDemand
                                           : LSWindow::KeyboardInteractivityNone);
+}
+
+void DesktopWindow::showSettings()
+{
+    if (m_scene)
+        m_scene->showSettings();
 }
 
 void DesktopWindow::resizeEvent(QResizeEvent *event)

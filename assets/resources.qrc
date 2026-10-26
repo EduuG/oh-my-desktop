@@ -1,6 +1,1 @@
-<!DOCTYPE RCC>
-<RCC version="1.0">
-    <qresource prefix="/styles">
-        <file>styles/retro.qss</file>
-    </qresource>
-</RCC>
+<!DOCTYPE RCC><RCC version="1.0"><qresource prefix="/styles"><file>styles/retro.qss</file></qresource><qresource prefix="/icons"><file>icons/sakura.svg</file></qresource></RCC>

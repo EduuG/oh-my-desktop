@@ -68,7 +68,7 @@ QPixmap loadEmbeddedIcon(const QFileInfo &fileInfo)
         return QPixmap();
 
     // Write ICO to temp file, then extract best PNG with icotool.
-    const QString tmpIco = QDir::tempPath() + "/_ohmydesktop_tmp.ico";
+    const QString tmpIco = QDir::tempPath() + "/_hyprsillydesktopicons_tmp.ico";
     {
         QFile tmp(tmpIco);
         if (!tmp.open(QIODevice::WriteOnly))
