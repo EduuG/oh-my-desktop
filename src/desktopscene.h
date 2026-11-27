@@ -95,6 +95,7 @@ private:
     void applyIconSize(int newSize); // resize + remap positions to new grid
     void applyFont(const QString &family, int size); // update font on all icons
     void setupHyprlandIPC(); // socket2 connection + event parsing (extracted to desktopscene_ipc.cpp)
+    void checkBackgroundLayerStacking(); // re-map above wallpapers started after us
     QRect workArea() const;    // screen work area in scene-local coordinates
     QRect menuBoundary() const; // popup boundary respecting panel reserved areas
     void showDesktopContextMenuAt(const QPoint &scenePos);
@@ -164,6 +165,7 @@ private:
     QSocketNotifier    *m_hypNotifier  = nullptr;
     int                 m_hypSockFd    = -1;
     QString             m_currentWorkspace;
+    QTimer             *m_layerStackTimer = nullptr;
     // Panel reserved areas (queried from Hyprland, [left,top,right,bottom])
     int m_reservedLeft   = 0;
     int m_reservedTop    = 0;

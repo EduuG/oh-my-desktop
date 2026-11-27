@@ -2,8 +2,13 @@
 #include "desktopicon.h"
 #include "desktopconstants.h"
 
+#include <QCoreApplication>
 #include <QGuiApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QProcess>
+#include <QTimer>
 #include <qlogging.h>
 
 #include <sys/socket.h>
@@ -43,6 +48,11 @@ void DesktopScene::setupHyprlandIPC()
     }
 
     // Connection succeeded - set up the notifier
+    m_layerStackTimer = new QTimer(this);
+    m_layerStackTimer->setSingleShot(true);
+    m_layerStackTimer->setInterval(kLayerStackCheckDelayMs);
+    connect(m_layerStackTimer, &QTimer::timeout, this, &DesktopScene::checkBackgroundLayerStacking);
+
     m_hypNotifier = new QSocketNotifier(m_hypSockFd, QSocketNotifier::Read, this);
     connect(m_hypNotifier, &QSocketNotifier::activated, this, [this]() {
         char buf[4096];
@@ -91,6 +101,10 @@ void DesktopScene::setupHyprlandIPC()
                 closeAllMenus();
                 for (auto *icon : m_icons)
                     icon->setSelected(false);
+            } else if (line.startsWith("openlayer>>")) {
+                // openlayer>>namespace
+                if (line.mid(11) != kLayerShellNamespace)
+                    m_layerStackTimer->start();
             } else if (line.startsWith("openwindow>>")) {
                 // openwindow>>windowaddress,workspacename,class,title
                 // Only redirect focus if Oh My Desktop currently has
@@ -117,4 +131,55 @@ void DesktopScene::setupHyprlandIPC()
             }
         }
     });
+}
+
+// ── Background layer stacking ─────────────────────────────────────────────────
+//
+// Wallpaper daemons (swaybg, hyprpaper, swww, ...) also use the background
+// layer, and Hyprland stacks surfaces of the same layer in creation order. One
+// that maps after us - started a bit later at login, or restarted by a theme
+// script - is drawn over the icons. When that happens, re-map our surface so it
+// is the newest one on the layer again.
+
+void DesktopScene::checkBackgroundLayerStacking()
+{
+    auto *hyprctl = new QProcess(this);
+    connect(hyprctl, &QProcess::errorOccurred, hyprctl, [hyprctl](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart)
+            hyprctl->deleteLater();
+    });
+    connect(hyprctl, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
+            [this, hyprctl](int exitCode, QProcess::ExitStatus status) {
+        hyprctl->deleteLater();
+        if (status != QProcess::NormalExit || exitCode != 0 || !m_screen)
+            return;
+
+        const QJsonObject monitors =
+            QJsonDocument::fromJson(hyprctl->readAllStandardOutput()).object();
+        const QRect geo = m_screen->geometry();
+        const qint64 pid = QCoreApplication::applicationPid();
+
+        for (const QJsonValue &monitor : monitors) {
+            const QJsonArray background =
+                monitor.toObject()["levels"].toObject()["0"].toArray();
+            for (int i = 0; i < background.size(); ++i) {
+                const QJsonObject surface = background[i].toObject();
+                if (surface["namespace"].toString() != QLatin1String(kLayerShellNamespace)
+                    || surface["pid"].toInteger() != pid
+                    || surface["x"].toInt() != geo.x() || surface["y"].toInt() != geo.y()
+                    || surface["w"].toInt() != geo.width() || surface["h"].toInt() != geo.height())
+                    continue;
+
+                if (i == background.size() - 1)
+                    return; // already on top of the background layer
+
+                if (QWidget *desktop = window()) {
+                    desktop->hide();
+                    desktop->show();
+                }
+                return;
+            }
+        }
+    });
+    hyprctl->start("hyprctl", {"layers", "-j"});
 }
