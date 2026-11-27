@@ -1,5 +1,6 @@
 #include "desktopwindow.h"
 #include "desktopscene.h"
+#include "desktopconstants.h"
 
 #include <LayerShellQt/Window>
 
@@ -46,7 +47,7 @@ void DesktopWindow::setupLayerShell()
     lsWindow->setExclusiveZone(-1);
     lsWindow->setKeyboardInteractivity(LSWindow::KeyboardInteractivityOnDemand);
     lsWindow->setActivateOnShow(false);
-    lsWindow->setScope("oh-my-desktop-desktop");
+    lsWindow->setScope(kLayerShellNamespace);
     lsWindow->setScreen(m_screen);
 }
 

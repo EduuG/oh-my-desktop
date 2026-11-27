@@ -59,6 +59,10 @@ constexpr int kHyprctlMonitorsTimeoutMs = 1500;
 // ── Hyprland exec dispatch timeout ─────────────────────────────────────────
 constexpr int kHyprctlDispatchTimeoutMs = 1500;
 
+// ── Layer-shell surface ────────────────────────────────────────────────────
+constexpr char kLayerShellNamespace[] = "oh-my-desktop-desktop";
+constexpr int  kLayerStackCheckDelayMs = 150; // coalesce openlayer bursts
+
 // ── Mime query timeout ─────────────────────────────────────────────────────
 constexpr int kMimeQueryTimeoutMs = 1000;
 
