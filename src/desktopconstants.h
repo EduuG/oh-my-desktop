@@ -56,6 +56,9 @@ constexpr int kFontSizeSpinMax = 24;
 // ── Hyprland reserved-area query timeout ───────────────────────────────────
 constexpr int kHyprctlMonitorsTimeoutMs = 1500;
 
+// ── Hyprland exec dispatch timeout ─────────────────────────────────────────
+constexpr int kHyprctlDispatchTimeoutMs = 1500;
+
 // ── Mime query timeout ─────────────────────────────────────────────────────
 constexpr int kMimeQueryTimeoutMs = 1000;
 
